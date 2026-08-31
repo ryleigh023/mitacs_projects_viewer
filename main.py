@@ -1,6 +1,9 @@
 """
-Entry point: log into the Mitacs GRI portal, scrape every open project,
-and export the results to a formatted .xlsx workbook.
+Entry point: scrape every public project on the Mitacs Globalink project
+listing and export the results to a formatted .xlsx workbook.
+
+No login is required -- browsing the project list is public (only
+applying to a project requires an account).
 
 Usage:
     python main.py
@@ -9,16 +12,13 @@ Usage:
 from __future__ import annotations
 
 import logging
+import random
 
-from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
-from auth import get_authenticated_context
-from config import OUTPUT_FILENAME
+from config import OUTPUT_FILENAME, SETTINGS
 from excel_writer import write_projects_to_excel
 from scraper import scrape_all_projects
-
-load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,17 +30,18 @@ logger = logging.getLogger(__name__)
 def main() -> None:
     try:
         with sync_playwright() as playwright:
-            context = get_authenticated_context(playwright)
+            browser = playwright.chromium.launch(headless=SETTINGS.headless)
+            context = browser.new_context(user_agent=random.choice(SETTINGS.user_agents))
+            page = context.new_page()
             try:
-                projects = scrape_all_projects(context)
+                projects = scrape_all_projects(page)
             finally:
                 context.close()
+                browser.close()
     except Exception:
         logger.exception(
-            "Scraping failed. If this is your first run, the CSS selectors "
-            "in config.py are almost certainly still placeholders -- inspect "
-            "the portal in DevTools and update them (see comments at the top "
-            "of config.py)."
+            "Scraping failed. If the portal's markup changed, the selectors "
+            "in config.py will need updating -- see the comments there."
         )
         raise
 
