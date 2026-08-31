@@ -12,6 +12,7 @@ Produces a native .xlsx with:
 from __future__ import annotations
 
 import logging
+import re
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -42,6 +43,14 @@ STRATEGIC_FILL = PatternFill(start_color="E5F5E0", end_color="E5F5E0", fill_type
 MAX_COLUMN_WIDTH = 60
 MIN_COLUMN_WIDTH = 12
 
+# Control characters that aren't valid in Excel's underlying XML (some
+# project descriptions from the source data contain stray ones).
+_ILLEGAL_XML_CHARS_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
+
+
+def _sanitize(value: str) -> str:
+    return _ILLEGAL_XML_CHARS_RE.sub("", value)
+
 
 def _competition_tier(host_university: str) -> str:
     normalized = host_university.strip().lower()
@@ -61,7 +70,7 @@ def _write_header(ws: Worksheet) -> None:
 def _write_rows(ws: Worksheet, projects: list[dict[str, str]]) -> None:
     for row_index, project in enumerate(projects, start=2):
         tier = _competition_tier(project["Host University"])
-        row_values = [project[header] for header in HEADERS[:-1]] + [tier]
+        row_values = [_sanitize(project[header]) for header in HEADERS[:-1]] + [tier]
 
         for col_index, value in enumerate(row_values, start=1):
             cell = ws.cell(row=row_index, column=col_index, value=value)
