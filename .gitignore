@@ -1,0 +1,17 @@
+# Secrets & sessions -- never commit these
+.env
+mitacs_session.json
+
+# Scraped output data
+mitacs_listings.xlsx
+*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
