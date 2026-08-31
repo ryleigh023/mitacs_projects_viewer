@@ -1,2 +1,2 @@
-playwright>=1.44
+requests>=2.31
 openpyxl>=3.1
