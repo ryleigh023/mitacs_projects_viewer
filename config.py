@@ -13,6 +13,8 @@ field is "Preferred student academic background", which is mapped to the
 "Preferred Disciplines" output column. "Department" will show as "N/A".
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
