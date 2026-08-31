@@ -1,20 +1,20 @@
 mitacs projects viewer
 
-a python tool that logs into the mitacs globalink research internship (gri) student portal, scrapes the open project listings, and exports them into a clean, filterable excel spreadsheet.
+a python tool that scrapes every public project on the mitacs globalink research internship (gri) project listing and exports them into a clean, filterable excel spreadsheet. no login required — browsing the project list is public, only applying to a project needs an account.
 
 what it does
 
-- logs into the gri student portal with playwright (headless chromium) and reuses the session on later runs
+- opens the public gri project listing with playwright (headless chromium) — confirmed live: no login needed to browse
 - scrapes every open project: title, host university, host province, professor name, department, description, required skills, and preferred disciplines
+  - "department" isn't part of mitacs's data model for this listing (confirmed by inspecting the live site), so it will always show "n/a"
 - retries flaky page loads with backoff and waits politely between requests so it doesn't hammer the portal
 - adds a "competition tier" column: flags tier-1 schools (university of toronto, ubc, mcgill, waterloo, university of alberta) as "high competition" and everything else as "strategic / less competitive"
 - writes everything to mitacs_listings.xlsx with a styled header row, frozen header, auto-fit column widths, and native excel autofilter dropdowns on every column
 
 files
 
-- config.py — urls, css selectors, and timing/retry settings (the only file you'll likely need to edit)
-- auth.py — login + session persistence
-- scraper.py — pagination, extraction, retries, throttling
+- config.py — urls, css selectors, and timing/retry settings (the only file you'll likely need to edit if mitacs changes their site)
+- scraper.py — pagination, per-project extraction, retries, throttling
 - excel_writer.py — builds the formatted .xlsx output
 - main.py — runs the whole pipeline
 
@@ -25,22 +25,18 @@ setup
    pip install -r requirements.txt
    playwright install chromium
 
-2. copy the env template and fill in your mitacs credentials (or leave it blank and you'll be prompted securely at runtime)
-
-   cp .env.example .env
-
-3. confirm the selectors in config.py
-
-   the gri portal only renders project data after you log in, so the selectors in config.py are placeholders. open the portal in your browser, log in, open devtools (f12) on the project listing page, and update the selectors in config.py to match the real page structure. the comments at the top of config.py walk through this step by step.
-
-4. run it
+2. run it
 
    python main.py
 
-   this opens a browser, logs in, scrapes every project, and saves mitacs_listings.xlsx in the project folder.
+   this opens a browser, scrapes every project (there are roughly 3,359 projects across ~336 pages as of writing), and saves mitacs_listings.xlsx in the project folder.
+
+testing a small batch first
+
+the full run covers ~336 pages, which takes a while given the polite delays between requests. to try it on just the first couple of pages, temporarily set `max_pages` in config.py's `ScraperSettings` to a small number (e.g. 2) before running, then set it back to `None` for a full run.
 
 notes
 
-- credentials are read from environment variables or prompted for at runtime — never hardcoded, never committed (.env is gitignored)
-- the saved session file (mitacs_session.json) and the generated .xlsx output are also gitignored since they're local/personal data
-- check mitacs's terms of use before running this at any real volume — it's meant for reviewing your own accessible project list at a slow, human-like pace, not bulk or commercial scraping
+- no credentials or .env file needed — the listing is fully public
+- the generated mitacs_listings.xlsx is gitignored since it's local output data, not code
+- check mitacs's terms of use before running a full scrape — this is meant for personal research/filtering at a slow, human-like pace, not bulk or commercial use
